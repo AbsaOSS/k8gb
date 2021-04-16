@@ -21,7 +21,6 @@ k8gb:
     hostnames:
      - "gslb-ns-us-cloud.example.com"
   reconcileRequeueSeconds: 30
-  exposeCoreDNS: false # Create Service type LoadBalancer to expose CoreDNS
   log:
     format: simple # log format (simple,json)
     level: info # log level (panic,fatal,error,warn,info,debug,trace)
@@ -37,6 +36,7 @@ externaldns:
     runAsNonRoot: true
 
 coredns:
+  # service: refer to https://www.k8gb.io/docs/service_upgrade.html for upgrading CoreDNS service steps
   isClusterService: false
   deployment:
     skipConfig: true

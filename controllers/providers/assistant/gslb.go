@@ -33,12 +33,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	externaldns "sigs.k8s.io/external-dns/endpoint"
 )
 
-const coreDNSExtServiceName = "k8gb-coredns-lb"
+const coreDNSServiceLabel = "app.kubernetes.io/name=coredns"
 
 // Gslb is common wrapper operating on GSLB instance.
 // It uses apimachinery client to call kubernetes API
@@ -62,27 +63,47 @@ func NewGslbAssistant(client client.Client, k8gbNamespace, edgeDNSServer string,
 
 // CoreDNSExposedIPs retrieves list of IP's exposed by CoreDNS
 func (r *Gslb) CoreDNSExposedIPs() ([]string, error) {
+	serviceList := &corev1.ServiceList{}
 	coreDNSService := &corev1.Service{}
-	err := r.client.Get(context.TODO(),
-		types.NamespacedName{Namespace: r.k8gbNamespace, Name: coreDNSExtServiceName}, coreDNSService)
+	sel, err := labels.Parse(coreDNSServiceLabel)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Warn().Msgf("Can't find %s service", coreDNSExtServiceName)
-		}
+		log.Error().Err(err).Msg("Badly formed label selector")
 		return nil, err
 	}
+	listOption := &client.ListOptions{
+		LabelSelector: sel,
+		Namespace:     r.k8gbNamespace,
+	}
+
+	err = r.client.List(context.TODO(), serviceList, listOption)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Warn().Err(err).Msg("Can't find CoreDNS service")
+		}
+	}
+	if len(serviceList.Items) != 1 {
+		log.Warn().Msg("More than 1 CoreDNS service was found")
+		for _, service := range serviceList.Items {
+			log.Info().Str("ServiceName", service.Name).Msg("Found CoreDNS service")
+		}
+		err := coreerrors.New("more than 1 CoreDNS service was found")
+		return nil, err
+	}
+	coreDNSService = &serviceList.Items[0]
+
 	var lbHostname string
 	if len(coreDNSService.Status.LoadBalancer.Ingress) > 0 {
 		lbHostname = coreDNSService.Status.LoadBalancer.Ingress[0].Hostname
 	} else {
-		errMessage := fmt.Sprintf("no Ingress LoadBalancer entries found for %s serice", coreDNSExtServiceName)
-		log.Warn().Msg(errMessage)
+		errMessage := "no LoadBalancer ExternalIPs are found"
+		log.Warn().Str("ServiceName", coreDNSService.Name).Msg(errMessage)
 		err := coreerrors.New(errMessage)
 		return nil, err
 	}
 	IPs, err := utils.Dig(r.edgeDNSServer, lbHostname)
 	if err != nil {
-		log.Warn().Msgf("Can't dig k8gb-coredns-lb service loadbalancer fqdn %s (%s)", lbHostname, err)
+		log.Warn().Err(err).Str("LoadBalancerHostname", lbHostname).
+			Msg("Can't dig CoreDNS service LoadBalancer FQDN")
 		return nil, err
 	}
 	return IPs, nil

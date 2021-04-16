@@ -8,7 +8,7 @@ appVersion: v0.8.1
 dependencies:
   - name: coredns
     repository: https://absaoss.github.io/coredns-helm
-    version: 1.15.1
+    version: 1.15.2
 
 home: https://www.k8gb.io/
 sources:
