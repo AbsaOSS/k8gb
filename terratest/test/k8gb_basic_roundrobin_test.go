@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -58,12 +59,12 @@ func TestK8gbBasicRoundRobinExample(t *testing.T) {
 	defer k8s.DeleteNamespace(t, optionsContext1, namespaceName)
 	defer k8s.DeleteNamespace(t, optionsContext2, namespaceName)
 
-	createGslbWithHealthyApp(t, optionsContext1, kubeResourcePath, gslbName, host)
+	utils.CreateGslbWithHealthyApp(t, optionsContext1, settings, kubeResourcePath, gslbName, host)
 
-	createGslbWithHealthyApp(t, optionsContext2, kubeResourcePath, gslbName, host)
+	utils.CreateGslbWithHealthyApp(t, optionsContext2, settings, kubeResourcePath, gslbName, host)
 
-	ingressIPs1 := GetIngressIPs(t, optionsContext1, gslbName)
-	ingressIPs2 := GetIngressIPs(t, optionsContext2, gslbName)
+	ingressIPs1 := utils.GetIngressIPs(t, optionsContext1, gslbName)
+	ingressIPs2 := utils.GetIngressIPs(t, optionsContext2, gslbName)
 	var expectedIPs []string
 	expectedIPs = append(expectedIPs, ingressIPs2...)
 	expectedIPs = append(expectedIPs, ingressIPs1...)
@@ -71,9 +72,9 @@ func TestK8gbBasicRoundRobinExample(t *testing.T) {
 	sort.Strings(expectedIPs)
 
 	t.Run("round-robin on two concurrent clusters with podinfo running", func(t *testing.T) {
-		resolvedIPsCoreDNS1, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, expectedIPs)
+		resolvedIPsCoreDNS1, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, expectedIPs)
 		require.NoError(t, err)
-		resolvedIPsCoreDNS2, err := waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, expectedIPs)
+		resolvedIPsCoreDNS2, err := utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, expectedIPs)
 		require.NoError(t, err)
 
 		assert.NotEmpty(t, resolvedIPsCoreDNS1)
@@ -88,11 +89,11 @@ func TestK8gbBasicRoundRobinExample(t *testing.T) {
 		// kill app in the first cluster
 		k8s.RunKubectl(t, optionsContext1, "scale", "deploy", "frontend-podinfo", "--replicas=0")
 
-		assertGslbStatus(t, optionsContext1, gslbName, host+":Unhealthy")
+		utils.AssertGslbStatus(t, optionsContext1, gslbName, host+":Unhealthy")
 
-		resolvedIPsCoreDNS1, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, ingressIPs2)
+		resolvedIPsCoreDNS1, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, ingressIPs2)
 		require.NoError(t, err)
-		resolvedIPsCoreDNS2, err := waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, ingressIPs2)
+		resolvedIPsCoreDNS2, err := utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, ingressIPs2)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, resolvedIPsCoreDNS1, resolvedIPsCoreDNS2)
 	})
@@ -101,11 +102,11 @@ func TestK8gbBasicRoundRobinExample(t *testing.T) {
 		// kill app in the second cluster
 		k8s.RunKubectl(t, optionsContext2, "scale", "deploy", "frontend-podinfo", "--replicas=0")
 
-		assertGslbStatus(t, optionsContext2, gslbName, host+":Unhealthy")
+		utils.AssertGslbStatus(t, optionsContext2, gslbName, host+":Unhealthy")
 
-		_, err = waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, []string{""})
+		_, err = utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, []string{""})
 		require.NoError(t, err)
-		_, err = waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, []string{""})
+		_, err = utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, []string{""})
 		require.NoError(t, err)
 	})
 
@@ -114,12 +115,12 @@ func TestK8gbBasicRoundRobinExample(t *testing.T) {
 		k8s.RunKubectl(t, optionsContext1, "scale", "deploy", "frontend-podinfo", "--replicas=1")
 		k8s.RunKubectl(t, optionsContext2, "scale", "deploy", "frontend-podinfo", "--replicas=1")
 
-		assertGslbStatus(t, optionsContext1, gslbName, host+":Healthy")
-		assertGslbStatus(t, optionsContext2, gslbName, host+":Healthy")
+		utils.AssertGslbStatus(t, optionsContext1, gslbName, host+":Healthy")
+		utils.AssertGslbStatus(t, optionsContext2, gslbName, host+":Healthy")
 
-		resolvedIPsCoreDNS1, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, expectedIPs)
+		resolvedIPsCoreDNS1, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, host, expectedIPs)
 		require.NoError(t, err)
-		resolvedIPsCoreDNS2, err := waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, expectedIPs)
+		resolvedIPsCoreDNS2, err := utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, host, expectedIPs)
 		require.NoError(t, err)
 
 		assert.NotEmpty(t, resolvedIPsCoreDNS1)

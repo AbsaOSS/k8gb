@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -60,7 +61,7 @@ func TestK8gbBasicAppExample(t *testing.T) {
 
 	defer k8s.KubectlDelete(t, options, kubeResourcePath)
 
-	createGslb(t, options, kubeResourcePath)
+	utils.CreateGslb(t, options, settings, kubeResourcePath)
 
 	k8s.WaitUntilIngressAvailable(t, options, "test-gslb", 60, 1*time.Second)
 	ingress := k8s.GetIngress(t, options, "test-gslb")
@@ -69,13 +70,13 @@ func TestK8gbBasicAppExample(t *testing.T) {
 	// Path to the Kubernetes resource config we will test
 	unhealthyAppPath, err := filepath.Abs("../examples/unhealthy-app.yaml")
 	require.NoError(t, err)
-	createGslb(t, options, unhealthyAppPath)
+	utils.CreateGslb(t, options, settings, unhealthyAppPath)
 
-	installPodinfo(t, options)
+	utils.InstallPodinfo(t, options, settings)
 
-	assertGslbStatus(t, options, "test-gslb", "terratest-notfound."+settings.DNSZone+":NotFound terratest-roundrobin."+settings.DNSZone+":Healthy terratest-unhealthy."+settings.DNSZone+":Unhealthy")
+	utils.AssertGslbStatus(t, options, "test-gslb", "terratest-notfound."+settings.DNSZone+":NotFound terratest-roundrobin."+settings.DNSZone+":Healthy terratest-unhealthy."+settings.DNSZone+":Unhealthy")
 	// Ensure controller labels DNSEndpoint objects
-	assertDNSEndpointLabel(t, options, "k8gb.absa.oss/dnstype")
+	utils.AssertDNSEndpointLabel(t, options, "k8gb.absa.oss/dnstype")
 
 	t.Run("Broken object rejected by API", func(t *testing.T) {
 		err := k8s.KubectlApplyE(t, options, brokenResourcePath)

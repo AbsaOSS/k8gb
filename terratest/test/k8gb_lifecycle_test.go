@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -39,10 +40,10 @@ func TestK8gbRepeatedlyRecreatedFromIngress(t *testing.T) {
 	const name = "test-gslb-failover-simple"
 
 	assertStrategy := func(t *testing.T, options *k8s.KubectlOptions) {
-		assertGslbSpec(t, options, name, "spec.strategy.splitBrainThresholdSeconds", "300")
-		assertGslbSpec(t, options, name, "spec.strategy.dnsTtlSeconds", "30")
-		assertGslbSpec(t, options, name, "spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
-		assertGslbSpec(t, options, name, "spec.strategy.type", "failover")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.splitBrainThresholdSeconds", "300")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.dnsTtlSeconds", "30")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.type", "failover")
 	}
 
 	// Path to the Kubernetes resource config we will test
@@ -66,7 +67,7 @@ func TestK8gbRepeatedlyRecreatedFromIngress(t *testing.T) {
 
 	defer k8s.KubectlDelete(t, options, ingressResourcePath)
 
-	createGslb(t, options, ingressResourcePath)
+	utils.CreateGslb(t, options, settings, ingressResourcePath)
 
 	k8s.WaitUntilIngressAvailable(t, options, name, 60, 1*time.Second)
 
@@ -79,10 +80,10 @@ func TestK8gbRepeatedlyRecreatedFromIngress(t *testing.T) {
 
 	k8s.KubectlDelete(t, options, ingressResourcePath)
 
-	assertGslbDeleted(t, options, ingress.Name)
+	utils.AssertGslbDeleted(t, options, ingress.Name)
 
 	// recreate ingress
-	createGslb(t, options, ingressResourcePath)
+	utils.CreateGslb(t, options, settings, ingressResourcePath)
 
 	k8s.WaitUntilIngressAvailable(t, options, name, 60, 1*time.Second)
 
@@ -101,10 +102,10 @@ func TestK8gbSpecKeepsStableAfterIngressUpdates(t *testing.T) {
 	const name = "test-gslb-lifecycle"
 
 	assertStrategy := func(t *testing.T, options *k8s.KubectlOptions) {
-		assertGslbSpec(t, options, name, "spec.strategy.splitBrainThresholdSeconds", "600")
-		assertGslbSpec(t, options, name, "spec.strategy.dnsTtlSeconds", "60")
-		assertGslbSpec(t, options, name, "spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
-		assertGslbSpec(t, options, name, "spec.strategy.type", "failover")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.splitBrainThresholdSeconds", "600")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.dnsTtlSeconds", "60")
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
+		utils.AssertGslbSpec(t, options, name, "spec.strategy.type", "failover")
 	}
 
 	kubeResourcePath, err := filepath.Abs("../examples/failover-lifecycle.yaml")
@@ -125,13 +126,13 @@ func TestK8gbSpecKeepsStableAfterIngressUpdates(t *testing.T) {
 	defer k8s.DeleteNamespace(t, options, namespaceName)
 
 	// create gslb
-	createGslb(t, options, kubeResourcePath)
+	utils.CreateGslb(t, options, settings, kubeResourcePath)
 	k8s.WaitUntilIngressAvailable(t, options, name, 60, 1*time.Second)
 
 	assertStrategy(t, options)
 
 	// reapply ingress
-	createGslb(t, options, ingressResourcePath)
+	utils.CreateGslb(t, options, settings, ingressResourcePath)
 
 	k8s.WaitUntilIngressAvailable(t, options, name, 60, 1*time.Second)
 

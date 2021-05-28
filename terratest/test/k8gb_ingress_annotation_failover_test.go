@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -54,24 +55,24 @@ func TestK8gbIngressAnnotationFailover(t *testing.T) {
 
 	defer k8s.DeleteNamespace(t, options, namespaceName)
 
-	createGslb(t, options, kubeResourcePath)
+	utils.CreateGslb(t, options, settings, kubeResourcePath)
 
 	ingress := k8s.GetIngress(t, options, "test-gslb-annotation-failover")
 	require.Equal(t, ingress.Name, "test-gslb-annotation-failover")
-	assertGslbStatus(t, options, "test-gslb-annotation-failover", "ingress-failover-notfound."+settings.DNSZone+":NotFound ingress-failover-unhealthy."+settings.DNSZone+":NotFound ingress-failover."+settings.DNSZone+":NotFound")
-	assertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.type", "failover")
-	assertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
-	assertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.dnsTtlSeconds", "60")
-	assertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.splitBrainThresholdSeconds", "600")
+	utils.AssertGslbStatus(t, options, "test-gslb-annotation-failover", "ingress-failover-notfound."+settings.DNSZone+":NotFound ingress-failover-unhealthy."+settings.DNSZone+":NotFound ingress-failover."+settings.DNSZone+":NotFound")
+	utils.AssertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.type", "failover")
+	utils.AssertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.primaryGeoTag", settings.PrimaryGeoTag)
+	utils.AssertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.dnsTtlSeconds", "60")
+	utils.AssertGslbSpec(t, options, "test-gslb-annotation-failover", ".spec.strategy.splitBrainThresholdSeconds", "600")
 
 	t.Run("Broken ingress is not proccessed", func(t *testing.T) {
-		createGslb(t, options, brokenResourcePath)
+		utils.CreateGslb(t, options, settings, brokenResourcePath)
 		err := k8s.RunKubectlE(t, options, "get", "gslb", "broken-test-gslb-annotation-failover")
 		require.Error(t, err)
 	})
 
 	t.Run("Gslb is getting deleted together with the annotated Ingress", func(t *testing.T) {
 		k8s.KubectlDelete(t, options, kubeResourcePath)
-		assertGslbDeleted(t, options, ingress.Name)
+		utils.AssertGslbDeleted(t, options, ingress.Name)
 	})
 }

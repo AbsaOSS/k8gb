@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,19 +60,19 @@ func TestK8gbBasicFailoverExample(t *testing.T) {
 
 	gslbName := "test-gslb"
 
-	createGslbWithHealthyApp(t, optionsContext1, kubeResourcePath, gslbName, "terratest-failover."+settings.DNSZone)
+	utils.CreateGslbWithHealthyApp(t, optionsContext1, settings, kubeResourcePath, gslbName, "terratest-failover."+settings.DNSZone)
 
-	createGslbWithHealthyApp(t, optionsContext2, kubeResourcePath, gslbName, "terratest-failover."+settings.DNSZone)
+	utils.CreateGslbWithHealthyApp(t, optionsContext2, settings, kubeResourcePath, gslbName, "terratest-failover."+settings.DNSZone)
 
-	expectedIPs := GetIngressIPs(t, optionsContext1, gslbName)
+	expectedIPs := utils.GetIngressIPs(t, optionsContext1, gslbName)
 
-	beforeFailoverResponse, err := DoWithRetryWaitingForValueE(
+	beforeFailoverResponse, err := utils.DoWithRetryWaitingForValueE(
 		t,
 		"Wait coredns to pickup dns values...",
 		300,
 		1*time.Second,
 		func() ([]string, error) {
-			return Dig(t, settings.DNSServer1, settings.Port1, "terratest-failover."+settings.DNSZone)
+			return utils.Dig(t, settings.DNSServer1, settings.Port1, "terratest-failover."+settings.DNSZone)
 		},
 		expectedIPs)
 	require.NoError(t, err)
@@ -80,18 +81,18 @@ func TestK8gbBasicFailoverExample(t *testing.T) {
 
 	k8s.RunKubectl(t, optionsContext1, "scale", "deploy", "frontend-podinfo", "--replicas=0")
 
-	assertGslbStatus(t, optionsContext1, gslbName, "terratest-failover."+settings.DNSZone+":Unhealthy")
+	utils.AssertGslbStatus(t, optionsContext1, gslbName, "terratest-failover."+settings.DNSZone+":Unhealthy")
 
 	t.Run("failover happens as expected", func(t *testing.T) {
-		expectedIPsAfterFailover := GetIngressIPs(t, optionsContext2, gslbName)
+		expectedIPsAfterFailover := utils.GetIngressIPs(t, optionsContext2, gslbName)
 
-		afterFailoverResponse, err := DoWithRetryWaitingForValueE(
+		afterFailoverResponse, err := utils.DoWithRetryWaitingForValueE(
 			t,
 			"Wait for failover to happen and coredns to pickup new values...",
 			300,
 			1*time.Second,
 			func() ([]string, error) {
-				return Dig(t, settings.DNSServer1, settings.Port1, "terratest-failover."+settings.DNSZone)
+				return utils.Dig(t, settings.DNSServer1, settings.Port1, "terratest-failover."+settings.DNSZone)
 			},
 			expectedIPsAfterFailover)
 		require.NoError(t, err)

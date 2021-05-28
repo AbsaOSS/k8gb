@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -62,20 +63,20 @@ func TestK8gbSplitFailoverExample(t *testing.T) {
 
 	gslbName := "test-gslb"
 
-	createGslbWithHealthyApp(t, optionsContext1, kubeResourcePath1, gslbName, "terratest-failover-split."+settings.DNSZone)
+	utils.CreateGslbWithHealthyApp(t, optionsContext1, settings, kubeResourcePath1, gslbName, "terratest-failover-split."+settings.DNSZone)
 
-	createGslbWithHealthyApp(t, optionsContext2, kubeResourcePath2, gslbName, "terratest-failover-split."+settings.DNSZone)
+	utils.CreateGslbWithHealthyApp(t, optionsContext2, settings, kubeResourcePath2, gslbName, "terratest-failover-split."+settings.DNSZone)
 
-	expectedIPsCluster1 := GetIngressIPs(t, optionsContext1, gslbName)
-	expectedIPsCluster2 := GetIngressIPs(t, optionsContext2, gslbName)
+	expectedIPsCluster1 := utils.GetIngressIPs(t, optionsContext1, gslbName)
+	expectedIPsCluster2 := utils.GetIngressIPs(t, optionsContext2, gslbName)
 
 	t.Run("Each cluster resolves its own set of IP addresses", func(t *testing.T) {
-		beforeFailoverResponseCluster1, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster1)
+		beforeFailoverResponseCluster1, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster1)
 		require.NoError(t, err)
 
 		assert.Equal(t, beforeFailoverResponseCluster1, expectedIPsCluster1)
 
-		beforeFailoverResponseCluster2, err := waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
+		beforeFailoverResponseCluster2, err := utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
 		require.NoError(t, err)
 
 		assert.Equal(t, beforeFailoverResponseCluster2, expectedIPsCluster2)
@@ -85,18 +86,18 @@ func TestK8gbSplitFailoverExample(t *testing.T) {
 
 		k8s.RunKubectl(t, optionsContext1, "scale", "deploy", "frontend-podinfo", "--replicas=0")
 
-		assertGslbStatus(t, optionsContext1, gslbName, "terratest-failover-split."+settings.DNSZone+":Unhealthy")
+		utils.AssertGslbStatus(t, optionsContext1, gslbName, "terratest-failover-split."+settings.DNSZone+":Unhealthy")
 	})
 
 	t.Run("Cluster 1 failovers to Cluster 2", func(t *testing.T) {
-		afterFailoverResponse, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
+		afterFailoverResponse, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
 		require.NoError(t, err)
 
 		assert.Equal(t, afterFailoverResponse, expectedIPsCluster2)
 	})
 
 	t.Run("Cluster 2 still returns own entries", func(t *testing.T) {
-		afterFailoverResponse, err := waitForLocalGSLB(t, settings.DNSServer2, settings.Port2, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
+		afterFailoverResponse, err := utils.WaitForLocalGSLB(t, settings.DNSServer2, settings.Port2, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster2)
 		require.NoError(t, err)
 
 		assert.Equal(t, afterFailoverResponse, expectedIPsCluster2)
@@ -106,11 +107,11 @@ func TestK8gbSplitFailoverExample(t *testing.T) {
 
 		k8s.RunKubectl(t, optionsContext1, "scale", "deploy", "frontend-podinfo", "--replicas=1")
 
-		assertGslbStatus(t, optionsContext1, gslbName, "terratest-failover-split."+settings.DNSZone+":Healthy")
+		utils.AssertGslbStatus(t, optionsContext1, gslbName, "terratest-failover-split."+settings.DNSZone+":Healthy")
 	})
 
 	t.Run("Cluster 1 returns own entries again", func(t *testing.T) {
-		afterFailoverResponse, err := waitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster1)
+		afterFailoverResponse, err := utils.WaitForLocalGSLB(t, settings.DNSServer1, settings.Port1, "terratest-failover-split."+settings.DNSZone, expectedIPsCluster1)
 		require.NoError(t, err)
 
 		assert.Equal(t, afterFailoverResponse, expectedIPsCluster1)

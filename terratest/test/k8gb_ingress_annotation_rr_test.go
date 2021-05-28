@@ -19,6 +19,7 @@ package test
 
 import (
 	"fmt"
+	"k8gbterratest/utils"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -52,15 +53,15 @@ func TestK8gbIngressAnnotationRR(t *testing.T) {
 
 	defer k8s.DeleteNamespace(t, options, namespaceName)
 
-	createGslb(t, options, kubeResourcePath)
+	utils.CreateGslb(t, options, settings, kubeResourcePath)
 
 	ingress := k8s.GetIngress(t, options, "test-gslb-annotation")
 	require.Equal(t, ingress.Name, "test-gslb-annotation")
-	assertGslbStatus(t, options, "test-gslb-annotation", "ingress-roundrobin."+settings.DNSZone+":NotFound ingress-rr-notfound."+settings.DNSZone+":NotFound ingress-rr-unhealthy."+settings.DNSZone+":NotFound")
-	assertGslbSpec(t, options, "test-gslb-annotation", ".spec.strategy.type", "roundRobin")
+	utils.AssertGslbStatus(t, options, "test-gslb-annotation", "ingress-roundrobin."+settings.DNSZone+":NotFound ingress-rr-notfound."+settings.DNSZone+":NotFound ingress-rr-unhealthy."+settings.DNSZone+":NotFound")
+	utils.AssertGslbSpec(t, options, "test-gslb-annotation", ".spec.strategy.type", "roundRobin")
 
 	t.Run("Gslb is getting deleted together with the annotated Ingress", func(t *testing.T) {
 		k8s.KubectlDelete(t, options, kubeResourcePath)
-		assertGslbDeleted(t, options, ingress.Name)
+		utils.AssertGslbDeleted(t, options, ingress.Name)
 	})
 }
