@@ -230,12 +230,14 @@ func (i *Instance) StartTestApp() {
 	i.w.state.testApp.isRunning = true
 }
 
-// WaitForGSLB returns IP address list
+// WaitForGSLB waits until GSLB contains desired IP address list and if it is, the desired list is returned.
+// Desired IP list is IngressIP combination of all instances.
+// e.g.: desiredIPList := instance1.GetIngressIP() + instance2.GetIngressIP() + instance3.GetIngressIP()
 func (i *Instance) WaitForGSLB(instances ...*Instance) ([]string, error) {
 	var expectedIPs []string
 	instances = append(instances, i)
 	for _, in := range instances {
-		// add expected ip's only if app is running
+		// add expected IP's only if app is running
 		if in.w.state.testApp.isRunning {
 			ip := in.GetIngressIPs()
 			expectedIPs = append(expectedIPs, ip...)
