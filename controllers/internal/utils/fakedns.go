@@ -146,12 +146,11 @@ func (m *DNSMock) startReadinessProbe() {
 	defer close(m.readinessProbe)
 	var err error
 	for i := 0; i < 5; i++ {
+		time.Sleep(periodDelay)
 		err = m.hit()
-		if err != nil {
-			time.Sleep(periodDelay)
-			continue
+		if err == nil {
+			return
 		}
-		return
 	}
 	m.err = fmt.Errorf("readiness probe %s (%s)", err, m.err)
 }
