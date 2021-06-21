@@ -47,48 +47,42 @@ func TestFullRoundRobin(t *testing.T) {
 	expectedIPs := append(instance1LocalTargets, instance2LocalTargets...)
 
 	t.Run("round-robin on two concurrent clusters with podinfo running", func(t *testing.T) {
-		_, err = instance1.WaitForExpected(expectedIPs)
+		err = instance1.WaitForExpected(expectedIPs)
 		require.NoError(t, err)
-		_, err = instance2.WaitForExpected(expectedIPs)
+		err = instance2.WaitForExpected(expectedIPs)
 		require.NoError(t, err)
 	})
 
 	t.Run("kill podinfo on the second cluster", func(t *testing.T) {
 		instance2.StopTestApp()
-		ip1, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		ip2, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		require.True(t, utils.EqualStringSlices(instance1LocalTargets, ip1))
-		require.True(t, utils.EqualStringSlices(instance1LocalTargets, ip2))
 	})
 
 	t.Run("kill podinfo on the first cluster", func(t *testing.T) {
 		instance1.StopTestApp()
-		ip2, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected([]string{})
 		require.NoError(t, err)
-		ip1, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected([]string{})
 		require.NoError(t, err)
-		require.Nil(t, ip1)
-		require.Nil(t, ip2)
 	})
 
 	t.Run("start podinfo on the second cluster", func(t *testing.T) {
 		instance2.StartTestApp()
-		ip1, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected(instance2LocalTargets)
 		require.NoError(t, err)
-		ip2, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected(instance2LocalTargets)
 		require.NoError(t, err)
-		require.True(t, utils.EqualStringSlices(instance2LocalTargets, ip1))
-		require.True(t, utils.EqualStringSlices(instance2LocalTargets, ip2))
 	})
 
 	t.Run("start podinfo on the first cluster", func(t *testing.T) {
 		// start app in the both clusters
 		instance1.StartTestApp()
-		_, err = instance1.WaitForExpected(expectedIPs)
+		err = instance1.WaitForExpected(expectedIPs)
 		require.NoError(t, err)
-		_, err = instance2.WaitForExpected(expectedIPs)
+		err = instance2.WaitForExpected(expectedIPs)
 		require.NoError(t, err)
 	})
 }

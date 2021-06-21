@@ -248,8 +248,9 @@ func (i *Instance) WaitForGSLB(instances ...*Instance) ([]string, error) {
 }
 
 // WaitForExpected waits until GSLB dig doesnt return list of expected IP's
-func (i *Instance) WaitForExpected(expectedIPs []string) ([]string, error) {
-	return waitForLocalGSLBNew(i.w.t, i.w.state.gslb.host, i.w.state.gslb.port, expectedIPs)
+func (i *Instance) WaitForExpected(expectedIPs []string) (err error) {
+	_, err = waitForLocalGSLBNew(i.w.t, i.w.state.gslb.host, i.w.state.gslb.port, expectedIPs)
+	return
 }
 
 func (i *Instance) String() string {

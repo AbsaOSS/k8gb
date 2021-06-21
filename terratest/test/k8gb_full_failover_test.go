@@ -21,7 +21,6 @@ import (
 	"k8gbterratest/utils"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,49 +46,41 @@ func TestFullFailover(t *testing.T) {
 	instance2LocalTargets := instance2.GetLocalTargets()
 
 	t.Run("failover on two concurrent clusters with podinfo running", func(t *testing.T) {
-		_, err = instance1.WaitForExpected(instance1LocalTargets)
+		err = instance1.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		_, err = instance2.WaitForExpected(instance1LocalTargets)
+		err = instance2.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
 	})
 
 	t.Run("kill podinfo on the second cluster", func(t *testing.T) {
 		instance2.StopTestApp()
-		ip1, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		ip2, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		require.True(t, utils.EqualStringSlices(instance1LocalTargets, ip1))
-		require.True(t, utils.EqualStringSlices(instance1LocalTargets, ip2))
 	})
 
 	t.Run("kill podinfo on the first cluster", func(t *testing.T) {
 		instance1.StopTestApp()
-		ip2, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected([]string{})
 		require.NoError(t, err)
-		ip1, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected([]string{})
 		require.NoError(t, err)
-		assert.Nil(t, ip1)
-		assert.Nil(t, ip2)
 	})
 
 	t.Run("start podinfo on the second cluster", func(t *testing.T) {
 		instance2.StartTestApp()
-		ip2, err := instance2.WaitForGSLB(instance1)
+		err = instance2.WaitForExpected(instance2LocalTargets)
 		require.NoError(t, err)
-		ip1, err := instance1.WaitForGSLB(instance2)
+		err = instance1.WaitForExpected(instance2LocalTargets)
 		require.NoError(t, err)
-		require.True(t, utils.EqualStringSlices(ip1, instance2LocalTargets))
-		require.True(t, utils.EqualStringSlices(ip2, instance2LocalTargets))
 	})
 
 	t.Run("start podinfo on the first cluster", func(t *testing.T) {
 		instance1.StartTestApp()
-		ip1, err := instance1.WaitForGSLB()
+		err = instance1.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		ip2, err := instance1.WaitForExpected(ip1)
+		err = instance2.WaitForExpected(instance1LocalTargets)
 		require.NoError(t, err)
-		require.True(t, utils.EqualStringSlices(ip1, instance1LocalTargets))
-		require.True(t, utils.EqualStringSlices(ip2, instance1LocalTargets))
 	})
 }
