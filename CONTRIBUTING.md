@@ -12,6 +12,7 @@
 - [Testing](#testing)
   - [Testing against real k8s clusters](#testing-against-real-k8s-clusters)
 - [Debugging](#debugging)
+- [Metrics](#metrics)
 - [Code style](#code-style)
 - [Commit and Pull Request message](#commit-and-pull-request-message)
   - [Signature](#signature)
@@ -129,6 +130,17 @@ There is a dedicated make target available for Goland:
     [This article](https://dev4devs.com/2019/05/04/operator-framework-how-to-debug-golang-operator-projects/) describes possible option examples for Goland and VS Code.
 
 3. Attach debugger of your IDE to port `2345`.
+
+## Metrics
+More info about k8gb metrics can be found in the [metrics.md](/docs/metrics.md) document. 
+If you need to check and query the k8gb metrics locally, you can install a Prometheus in the local clusters using the `make deploy-prometheus` command.
+
+The deployed Prometheus scrapes metrics from the dedicated k8gb operator endpoint and makes them accessible via Prometheus web UI:
+
+- http://127.0.0.1:8080
+- http://127.0.0.1:8081
+
+To uninstall Prometheus, run `make uninstall-prometheus`
 
 ## Code style
 
