@@ -12,7 +12,7 @@ jobs:
   terratest:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Create 1st k3s Cluster
         uses: AbsaOSS/k3d-action@v1.4.0
