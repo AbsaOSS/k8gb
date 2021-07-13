@@ -63,6 +63,7 @@ type testSettings struct {
 	ingress    *v1beta1.Ingress
 	finalCall  bool
 	assistant  assistant.Assistant
+	metrics	 *metrics.PrometheusMetrics
 }
 
 var crSampleYaml = "../deploy/crds/k8gb.absa.oss_v1beta1_gslb_cr.yaml"
@@ -153,7 +154,7 @@ func TestIngressHostsPerStatusMetric(t *testing.T) {
 	defer settings.reconciler.Metrics.Unregister()
 	expectedHostsMetricCount := 3
 	// act
-	ingressHostsPerStatusMetric := settings.reconciler.Metrics.GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	actualHostsMetricCount := testutil.CollectAndCount(ingressHostsPerStatusMetric)
 	// assert
@@ -178,7 +179,7 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 			reconcileAndUpdateGslb(t, settings)
 			// act
 			err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
-			ingressHostsPerStatusMetric := settings.reconciler.Metrics.GetIngressHostsPerStatusMetric()
+			ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
 			healthyHosts := ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": settings.gslb.Namespace,
 				"name": settings.gslb.Name, "status": metrics.HealthyStatus})
 			actualHostsMetric := testutil.ToFloat64(healthyHosts)
@@ -199,7 +200,7 @@ func TestIngressHostsPerStatusMetricReflectionForUnhealthyStatus(t *testing.T) {
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	expectedHostsMetricCount := 0.
 	// act
-	ingressHostsPerStatusMetric := settings.reconciler.Metrics.GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
 	unhealthyHosts := ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": settings.gslb.Namespace,
 		"name": settings.gslb.Name, "status": metrics.UnhealthyStatus})
 	actualHostsMetricCount := testutil.ToFloat64(unhealthyHosts)
@@ -240,7 +241,7 @@ func TestIngressHostsPerStatusMetricReflectionForNotFoundStatus(t *testing.T) {
 	// act
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	require.NoError(t, err, "Failed to get expected gslb")
-	ingressHostsPerStatusMetric := settings.reconciler.Metrics.GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
 	unknownHosts, err := ingressHostsPerStatusMetric.GetMetricWith(
 		prometheus.Labels{"namespace": settings.gslb.Namespace, "name": settings.gslb.Name, "status": metrics.NotFoundStatus})
 	require.NoError(t, err, "Failed to get ingress metrics")
@@ -274,7 +275,7 @@ func TestHealthyRecordMetric(t *testing.T) {
 	require.NoError(t, err, "Failed to update gslb Ingress Address")
 	reconcileAndUpdateGslb(t, settings)
 	// act
-	healthyRecordsMetric := settings.reconciler.Metrics.GetHealthyRecordsMetric()
+	healthyRecordsMetric := settings.metrics.GetHealthyRecordsMetric()
 	actualHealthyRecordsMetricCount := testutil.ToFloat64(healthyRecordsMetric)
 	reconcileAndUpdateGslb(t, settings)
 	// assert
@@ -288,8 +289,8 @@ func TestMetricLinterCheck(t *testing.T) {
 	defer settings.reconciler.Metrics.Unregister()
 	err := settings.reconciler.Metrics.Register()
 	require.NoError(t, err)
-	healthyRecordsMetric := settings.reconciler.Metrics.GetHealthyRecordsMetric()
-	ingressHostsPerStatusMetric := settings.reconciler.Metrics.GetIngressHostsPerStatusMetric()
+	healthyRecordsMetric := settings.metrics.GetHealthyRecordsMetric()
+	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
 	for name, scenario := range map[string]prometheus.Collector{
 		"healthy_records":          healthyRecordsMetric,
 		"ingress_hosts_per_status": ingressHostsPerStatusMetric,
@@ -1168,7 +1169,8 @@ func provideSettings(t *testing.T, expected depresolver.Config) (settings testSe
 	r.Config = &expected
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
-	r.Metrics = metrics.NewPrometheusMetrics(expected)
+	m := metrics.NewPrometheusMetrics(expected)
+	r.Metrics = m
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      gslb.Name,
@@ -1208,6 +1210,7 @@ func provideSettings(t *testing.T, expected depresolver.Config) (settings testSe
 		ingress:    ingress,
 		finalCall:  false,
 		assistant:  a,
+		metrics: m,
 	}
 	reconcileAndUpdateGslb(t, settings)
 	logging.Init(&expected)

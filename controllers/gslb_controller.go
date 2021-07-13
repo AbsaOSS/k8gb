@@ -50,7 +50,7 @@ type GslbReconciler struct {
 	Scheme      *runtime.Scheme
 	Config      *depresolver.Config
 	DepResolver *depresolver.DependencyResolver
-	Metrics     *metrics.PrometheusMetrics
+	Metrics     metrics.Metrics
 	DNSProvider dns.Provider
 }
 
