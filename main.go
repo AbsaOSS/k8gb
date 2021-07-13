@@ -48,6 +48,10 @@ func init() {
 }
 
 func main() {
+	var exitCode = 1
+	defer func() {
+		os.Exit(exitCode)
+	}()
 	var f *dns.ProviderFactory
 	resolver := depresolver.NewDependencyResolver()
 	config, err := resolver.ResolveOperatorConfig()
@@ -56,7 +60,7 @@ func main() {
 	log := logging.Logger()
 	if err != nil {
 		log.Err(err).Msg("can't resolve environment variables")
-		os.Exit(1)
+		return
 	}
 	log.Debug().
 		Str("config", str.ToString(config)).
@@ -73,7 +77,7 @@ func main() {
 	})
 	if err != nil {
 		log.Err(err).Msg("unable to start manager")
-		os.Exit(1)
+		return
 	}
 
 	log.Info().Msg("registering components.")
@@ -84,7 +88,7 @@ func main() {
 	schemeBuilder.Register(&externaldns.DNSEndpoint{}, &externaldns.DNSEndpointList{})
 	if err := schemeBuilder.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Err(err).Msg("")
-		os.Exit(1)
+		return
 	}
 
 	reconciler := &controllers.GslbReconciler{
@@ -98,7 +102,7 @@ func main() {
 	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config)
 	if err != nil {
 		log.Err(err).Msgf("unable to create factory (%s)", err)
-		os.Exit(1)
+		return
 	}
 	reconciler.DNSProvider = f.Provider()
 	log.Info().Msgf("provider: %s", reconciler.DNSProvider)
@@ -107,17 +111,19 @@ func main() {
 	err = reconciler.Metrics.Register()
 	if err != nil {
 		log.Err(err).Msg("register metrics error")
-		os.Exit(1)
+		return
 	}
+	defer reconciler.Metrics.Unregister()
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Err(err).Msg("unable to create controller Gslb")
-		os.Exit(1)
+		return
 	}
 	// +kubebuilder:scaffold:builder
 	log.Info().Msg("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Err(err).Msg("problem running manager")
-		os.Exit(1)
+		return
 	}
-	reconciler.Metrics.Unregister()
+	// time to call deferred functions including the exit one with code=0
+	exitCode = 0
 }
