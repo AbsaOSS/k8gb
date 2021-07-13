@@ -42,7 +42,7 @@ import (
 type Workflow struct {
 	error      error
 	namespace  string
-	cluster	 string
+	cluster    string
 	k8sOptions *k8s.KubectlOptions
 	t          *testing.T
 	settings   struct {
@@ -92,10 +92,10 @@ type InstanceStatus struct {
 	GslbHealthStatus string   `json:"gslb-status"`
 	Cluster          string   `json:"cluster"`
 	Namespace        string   `json:"namespace"`
-	Endpoint0DNSName string `json:"ep0-dns-name"`
-	Endpoint0Targets string `json:"ep0-dns-targets"`
-	Endpoint1DNSName string `json:"ep1-dns-name"`
-	Endpoint1Targets string `json:"ep1-dns-targets"`
+	Endpoint0DNSName string   `json:"ep0-dns-name"`
+	Endpoint0Targets string   `json:"ep0-dns-targets"`
+	Endpoint1DNSName string   `json:"ep1-dns-name"`
+	Endpoint1Targets string   `json:"ep1-dns-targets"`
 }
 
 func NewWorkflow(t *testing.T, cluster string, port int) *Workflow {
@@ -297,14 +297,14 @@ func (i *Instance) WaitForGSLB(instances ...*Instance) ([]string, error) {
 func (i *Instance) WaitForExpected(expectedIPs []string) (err error) {
 	_, err = waitForLocalGSLBNew(i.w.t, i.w.state.gslb.host, i.w.state.gslb.port, expectedIPs)
 	if err != nil {
-		fmt.Println(i.GetStatus(fmt.Sprintf("expected IPs: %s",expectedIPs)).String())
+		fmt.Println(i.GetStatus(fmt.Sprintf("expected IPs: %s", expectedIPs)).String())
 	}
 	return
 }
 
 // WaitForAppIsRunning waits until app has one pod running
 func (i *Instance) WaitForAppIsRunning() (err error) {
-	f := func()([]string, error){
+	f := func() ([]string, error) {
 		r := i.GetStatus("").AppReplicas
 		return []string{r}, nil
 	}
@@ -359,7 +359,7 @@ func (i *Instance) HitTestApp() (result *TestAppResult) {
 
 // GetStatus reads overall status about instance. Status can be used for assertion as well as printed to test output
 // Annotation argument is just free text which might be used in various test scenarios
-func (i *Instance) GetStatus(annotation string) (s *InstanceStatus){
+func (i *Instance) GetStatus(annotation string) (s *InstanceStatus) {
 	const na = "n/a"
 	var err error
 	s = new(InstanceStatus)
@@ -372,8 +372,8 @@ func (i *Instance) GetStatus(annotation string) (s *InstanceStatus){
 	s.CoreDNS = i.GetCoreDNSIP()
 	s.AppMessage = i.w.state.testApp.message
 	s.AppRunning = i.w.state.testApp.isRunning
-	s.AppReplicas, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "deployments","frontend-podinfo",
-		"-o","custom-columns=STATUS:.status.replicas", "--no-headers")
+	s.AppReplicas, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "deployments", "frontend-podinfo",
+		"-o", "custom-columns=STATUS:.status.replicas", "--no-headers")
 	if err != nil {
 		s.AppReplicas = na
 	}
@@ -382,22 +382,22 @@ func (i *Instance) GetStatus(annotation string) (s *InstanceStatus){
 	if err != nil {
 		s.GslbHealthStatus = na
 	}
-	s.Endpoint0DNSName,err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions,"get","dnsendpoints.externaldns.k8s.io","test-gslb","-o",
+	s.Endpoint0DNSName, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "dnsendpoints.externaldns.k8s.io", "test-gslb", "-o",
 		"custom-columns=SERVICESTATUS:.spec.endpoints[0].dnsName", "--no-headers")
 	if err != nil {
 		s.Endpoint0DNSName = na
 	}
-	s.Endpoint0Targets,err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions,"get","dnsendpoints.externaldns.k8s.io","test-gslb","-o",
+	s.Endpoint0Targets, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "dnsendpoints.externaldns.k8s.io", "test-gslb", "-o",
 		"custom-columns=SERVICESTATUS:.spec.endpoints[0].targets", "--no-headers")
 	if err != nil {
 		s.Endpoint0Targets = na
 	}
-	s.Endpoint1DNSName,err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions,"get","dnsendpoints.externaldns.k8s.io","test-gslb","-o",
+	s.Endpoint1DNSName, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "dnsendpoints.externaldns.k8s.io", "test-gslb", "-o",
 		"custom-columns=SERVICESTATUS:.spec.endpoints[1].dnsName", "--no-headers")
 	if err != nil {
 		s.Endpoint1DNSName = na
 	}
-	s.Endpoint1Targets,err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions,"get","dnsendpoints.externaldns.k8s.io","test-gslb","-o",
+	s.Endpoint1Targets, err = k8s.RunKubectlAndGetOutputE(i.w.t, i.w.k8sOptions, "get", "dnsendpoints.externaldns.k8s.io", "test-gslb", "-o",
 		"custom-columns=SERVICESTATUS:.spec.endpoints[1].targets", "--no-headers")
 	if err != nil {
 		s.Endpoint1Targets = na

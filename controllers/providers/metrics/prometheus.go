@@ -38,29 +38,16 @@ type PrometheusMetrics struct {
 	healthyRecordsMetric        *prometheus.GaugeVec
 	ingressHostsPerStatusMetric *prometheus.GaugeVec
 	once                        sync.Once
+	config                      depresolver.Config
+	registered                  []prometheus.Collector
 }
 
 // NewPrometheusMetrics creates new prometheus metrics instance
 func NewPrometheusMetrics(config depresolver.Config) (metrics *PrometheusMetrics) {
 	metrics = new(PrometheusMetrics)
-	metrics.healthyRecordsMetric = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: config.K8gbNamespace,
-			Subsystem: gslbSubsystem,
-			Name:      "healthy_records",
-			Help:      "Number of healthy records observed by K8GB.",
-		},
-		[]string{"namespace", "name"},
-	)
-	metrics.ingressHostsPerStatusMetric = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: config.K8gbNamespace,
-			Subsystem: gslbSubsystem,
-			Name:      "ingress_hosts_per_status",
-			Help:      "Number of managed hosts observed by K8GB.",
-		},
-		[]string{"namespace", "name", "status"},
-	)
+	metrics.registered = make([]prometheus.Collector, 0)
+	metrics.config = config
+	metrics.init()
 	return
 }
 
@@ -98,11 +85,10 @@ func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, h
 // You can register metric with given name only once
 func (m *PrometheusMetrics) Register() (err error) {
 	m.once.Do(func() {
-		if err = crm.Registry.Register(m.healthyRecordsMetric); err != nil {
-			return
-		}
-		if err = crm.Registry.Register(m.ingressHostsPerStatusMetric); err != nil {
-			return
+		for _, r := range m.registered {
+			if err = crm.Registry.Register(r); err != nil {
+				return
+			}
 		}
 	})
 	if err != nil {
@@ -113,18 +99,43 @@ func (m *PrometheusMetrics) Register() (err error) {
 
 // Unregister prometheus metrics
 func (m *PrometheusMetrics) Unregister() {
-	crm.Registry.Unregister(m.healthyRecordsMetric)
-	crm.Registry.Unregister(m.ingressHostsPerStatusMetric)
+	for _, r := range m.registered {
+		crm.Registry.Unregister(r)
+	}
 }
 
 // GetHealthyRecordsMetric retrieves actual copy of healthy record metric
-// TODO: consider to implement concrete metrics as a functions which returns metrics as slices/maps or structures
 func (m *PrometheusMetrics) GetHealthyRecordsMetric() prometheus.GaugeVec {
 	return *m.healthyRecordsMetric
 }
 
 // GetIngressHostsPerStatusMetric retrieves actual copy of ingress host metric
-// TODO: consider to implement concrete metrics as a functions which returns metrics as slices/maps or structures
 func (m *PrometheusMetrics) GetIngressHostsPerStatusMetric() prometheus.GaugeVec {
 	return *m.ingressHostsPerStatusMetric
+}
+
+// init instantiates particular metrics
+func (m *PrometheusMetrics) init() {
+	m.healthyRecordsMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: m.config.K8gbNamespace,
+			Subsystem: gslbSubsystem,
+			Name:      "healthy_records",
+			Help:      "Number of healthy records observed by K8GB.",
+		},
+		[]string{"namespace", "name"},
+	)
+
+	m.ingressHostsPerStatusMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: m.config.K8gbNamespace,
+			Subsystem: gslbSubsystem,
+			Name:      "ingress_hosts_per_status",
+			Help:      "Number of managed hosts observed by K8GB.",
+		},
+		[]string{"namespace", "name", "status"},
+	)
+
+	m.registered = append(m.registered, m.healthyRecordsMetric)
+	m.registered = append(m.registered, m.ingressHostsPerStatusMetric)
 }
