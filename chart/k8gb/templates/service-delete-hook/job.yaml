@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hook-service-delete
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy":  hook-succeeded
+spec:
+  template:
+    metadata:
+      name: hook-service-delete
+    spec:
+      restartPolicy: Never
+      serviceAccountName: hook-sa
+      automountServiceAccountToken: true
+      containers:
+        - name: kubectl
+          image: {{ .Values.k8gb.hookImageRepo }}:{{ .Values.k8gb.hookImageTag }}
+          args:
+            - delete
+            - svc
+            - -n
+            - {{ .Release.Namespace }}
+            - k8gb-coredns

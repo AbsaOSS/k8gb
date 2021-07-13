@@ -1,6 +1,6 @@
 dependencies:
 - name: coredns
   repository: https://absaoss.github.io/coredns-helm
-  version: 1.15.1
-digest: sha256:db2e8003678cc6b10d8087c660fdea07c5ce0d0737b9ac974c5debd3553bfa8b
-generated: "2021-04-13T16:57:39.773609+02:00"
+  version: 1.15.2
+digest: sha256:454120d311ca4b67ecbf6a0d33ea3282b795d69b4bee7ba0eed2488949908927
+generated: "2021-04-26T10:11:08.378412+02:00"

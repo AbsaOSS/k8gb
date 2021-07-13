@@ -4,8 +4,12 @@ k8gb:
   edgeDNSServer: "169.254.169.253" # external DNS server to be used for resolution
   clusterGeoTag: "us-east-1" # used for places where we need to distinguish between differnet Gslb instances
   extGslbClustersGeoTags: "eu-west-1" # comma-separated list of external gslb geo tags to pair with
-  exposeCoreDNS: true # Create Service type LoadBalancer to expose CoreDNS
 
 ns1:
   enabled: true
   ignoreSSL: false
+coredns:
+  serviceType: LoadBalancer
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
