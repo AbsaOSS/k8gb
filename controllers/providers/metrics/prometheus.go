@@ -19,6 +19,7 @@ package metrics
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 
 	k8gbv1beta1 "github.com/AbsaOSS/k8gb/api/v1beta1"
@@ -34,21 +35,21 @@ const (
 	NotFoundStatus  = "NotFound"
 )
 
+type collectors struct {
+	HealthyRecords        *prometheus.GaugeVec
+	IngressHostsPerStatus *prometheus.GaugeVec
+	DelegatedZoneUpdate   *prometheus.GaugeVec
+}
+
 type PrometheusMetrics struct {
-	once       sync.Once
-	config     depresolver.Config
-	registered []prometheus.Collector
-	Metrics    struct {
-		healthyRecordsMetric        *prometheus.GaugeVec
-		ingressHostsPerStatusMetric *prometheus.GaugeVec
-		updateDelegatedZone         *prometheus.HistogramVec
-	}
+	once    sync.Once
+	config  depresolver.Config
+	metrics collectors
 }
 
 // NewPrometheusMetrics creates new prometheus metrics instance
 func NewPrometheusMetrics(config depresolver.Config) (metrics *PrometheusMetrics) {
 	metrics = new(PrometheusMetrics)
-	metrics.registered = make([]prometheus.Collector, 0)
 	metrics.config = config
 	metrics.init()
 	return
@@ -66,11 +67,11 @@ func (m *PrometheusMetrics) UpdateIngressHostsPerStatusMetric(gslb *k8gbv1beta1.
 			notFoundHostsCount++
 		}
 	}
-	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": HealthyStatus}).
+	m.metrics.IngressHostsPerStatus.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": HealthyStatus}).
 		Set(float64(healthyHostsCount))
-	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": UnhealthyStatus}).
+	m.metrics.IngressHostsPerStatus.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": UnhealthyStatus}).
 		Set(float64(unhealthyHostsCount))
-	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": NotFoundStatus}).
+	m.metrics.IngressHostsPerStatus.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": NotFoundStatus}).
 		Set(float64(notFoundHostsCount))
 	return nil
 }
@@ -80,15 +81,20 @@ func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, h
 	for _, hrs := range healthyRecords {
 		hrsCount += len(hrs)
 	}
-	m.Metrics.healthyRecordsMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name}).Set(float64(hrsCount))
+	m.metrics.HealthyRecords.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name}).Set(float64(hrsCount))
 	return nil
+}
+
+func (m *PrometheusMetrics) UpdateDelegatedZone() (err error) {
+
+	return
 }
 
 // Register prometheus metrics. Read register documentation, but shortly:
 // You can register metric with given name only once
 func (m *PrometheusMetrics) Register() (err error) {
 	m.once.Do(func() {
-		for _, r := range m.registered {
+		for _, r := range m.registry() {
 			if err = crm.Registry.Register(r); err != nil {
 				return
 			}
@@ -102,24 +108,24 @@ func (m *PrometheusMetrics) Register() (err error) {
 
 // Unregister prometheus metrics
 func (m *PrometheusMetrics) Unregister() {
-	for _, r := range m.registered {
+	for _, r := range m.registry() {
 		crm.Registry.Unregister(r)
 	}
 }
 
 // GetHealthyRecordsMetric retrieves actual copy of healthy record metric
 func (m *PrometheusMetrics) GetHealthyRecordsMetric() prometheus.GaugeVec {
-	return *m.Metrics.healthyRecordsMetric
+	return *m.metrics.HealthyRecords
 }
 
 // GetIngressHostsPerStatusMetric retrieves actual copy of ingress host metric
 func (m *PrometheusMetrics) GetIngressHostsPerStatusMetric() prometheus.GaugeVec {
-	return *m.Metrics.ingressHostsPerStatusMetric
+	return *m.metrics.IngressHostsPerStatus
 }
 
 // init instantiates particular metrics
 func (m *PrometheusMetrics) init() {
-	m.Metrics.healthyRecordsMetric = prometheus.NewGaugeVec(
+	m.metrics.HealthyRecords = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: m.config.K8gbNamespace,
 			Subsystem: gslbSubsystem,
@@ -129,7 +135,7 @@ func (m *PrometheusMetrics) init() {
 		[]string{"namespace", "name"},
 	)
 
-	m.Metrics.ingressHostsPerStatusMetric = prometheus.NewGaugeVec(
+	m.metrics.IngressHostsPerStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: m.config.K8gbNamespace,
 			Subsystem: gslbSubsystem,
@@ -139,6 +145,27 @@ func (m *PrometheusMetrics) init() {
 		[]string{"namespace", "name", "status"},
 	)
 
-	m.registered = append(m.registered, m.Metrics.healthyRecordsMetric)
-	m.registered = append(m.registered, m.Metrics.ingressHostsPerStatusMetric)
+	m.metrics.DelegatedZoneUpdate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: m.config.K8gbNamespace,
+			Subsystem: gslbSubsystem,
+			Name:      "delegated_zone_update",
+			Help:      "Number of delegated zone updates.",
+		},
+		[]string{"namespace", "name"},
+	)
+}
+
+// registry is helper function reading fields from m.metrics and provides metrics list
+func (m *PrometheusMetrics) registry() (r []prometheus.Collector) {
+	r = make([]prometheus.Collector, 0)
+	val := reflect.Indirect(reflect.ValueOf(m.metrics))
+	for i := 0; i < val.Type().NumField(); i++ {
+		n := val.Type().Field(i).Name
+		var v = val.FieldByName(n).Interface().(prometheus.Collector)
+		if !val.Field(i).IsNil() {
+			r = append(r, v)
+		}
+	}
+	return
 }
