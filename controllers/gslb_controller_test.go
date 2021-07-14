@@ -63,7 +63,7 @@ type testSettings struct {
 	ingress    *v1beta1.Ingress
 	finalCall  bool
 	assistant  assistant.Assistant
-	metrics	 *metrics.PrometheusMetrics
+	metrics    *metrics.PrometheusMetrics
 }
 
 var crSampleYaml = "../deploy/crds/k8gb.absa.oss_v1beta1_gslb_cr.yaml"
@@ -1210,7 +1210,7 @@ func provideSettings(t *testing.T, expected depresolver.Config) (settings testSe
 		ingress:    ingress,
 		finalCall:  false,
 		assistant:  a,
-		metrics: m,
+		metrics:    m,
 	}
 	reconcileAndUpdateGslb(t, settings)
 	logging.Init(&expected)

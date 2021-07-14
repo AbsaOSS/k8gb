@@ -35,11 +35,14 @@ const (
 )
 
 type PrometheusMetrics struct {
-	healthyRecordsMetric        *prometheus.GaugeVec
-	ingressHostsPerStatusMetric *prometheus.GaugeVec
-	once                        sync.Once
-	config                      depresolver.Config
-	registered                  []prometheus.Collector
+	once       sync.Once
+	config     depresolver.Config
+	registered []prometheus.Collector
+	Metrics    struct {
+		healthyRecordsMetric        *prometheus.GaugeVec
+		ingressHostsPerStatusMetric *prometheus.GaugeVec
+		updateDelegatedZone         *prometheus.HistogramVec
+	}
 }
 
 // NewPrometheusMetrics creates new prometheus metrics instance
@@ -63,11 +66,11 @@ func (m *PrometheusMetrics) UpdateIngressHostsPerStatusMetric(gslb *k8gbv1beta1.
 			notFoundHostsCount++
 		}
 	}
-	m.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": HealthyStatus}).
+	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": HealthyStatus}).
 		Set(float64(healthyHostsCount))
-	m.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": UnhealthyStatus}).
+	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": UnhealthyStatus}).
 		Set(float64(unhealthyHostsCount))
-	m.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": NotFoundStatus}).
+	m.Metrics.ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": NotFoundStatus}).
 		Set(float64(notFoundHostsCount))
 	return nil
 }
@@ -77,7 +80,7 @@ func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, h
 	for _, hrs := range healthyRecords {
 		hrsCount += len(hrs)
 	}
-	m.healthyRecordsMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name}).Set(float64(hrsCount))
+	m.Metrics.healthyRecordsMetric.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name}).Set(float64(hrsCount))
 	return nil
 }
 
@@ -106,17 +109,17 @@ func (m *PrometheusMetrics) Unregister() {
 
 // GetHealthyRecordsMetric retrieves actual copy of healthy record metric
 func (m *PrometheusMetrics) GetHealthyRecordsMetric() prometheus.GaugeVec {
-	return *m.healthyRecordsMetric
+	return *m.Metrics.healthyRecordsMetric
 }
 
 // GetIngressHostsPerStatusMetric retrieves actual copy of ingress host metric
 func (m *PrometheusMetrics) GetIngressHostsPerStatusMetric() prometheus.GaugeVec {
-	return *m.ingressHostsPerStatusMetric
+	return *m.Metrics.ingressHostsPerStatusMetric
 }
 
 // init instantiates particular metrics
 func (m *PrometheusMetrics) init() {
-	m.healthyRecordsMetric = prometheus.NewGaugeVec(
+	m.Metrics.healthyRecordsMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: m.config.K8gbNamespace,
 			Subsystem: gslbSubsystem,
@@ -126,7 +129,7 @@ func (m *PrometheusMetrics) init() {
 		[]string{"namespace", "name"},
 	)
 
-	m.ingressHostsPerStatusMetric = prometheus.NewGaugeVec(
+	m.Metrics.ingressHostsPerStatusMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: m.config.K8gbNamespace,
 			Subsystem: gslbSubsystem,
@@ -136,6 +139,6 @@ func (m *PrometheusMetrics) init() {
 		[]string{"namespace", "name", "status"},
 	)
 
-	m.registered = append(m.registered, m.healthyRecordsMetric)
-	m.registered = append(m.registered, m.ingressHostsPerStatusMetric)
+	m.registered = append(m.registered, m.Metrics.healthyRecordsMetric)
+	m.registered = append(m.registered, m.Metrics.ingressHostsPerStatusMetric)
 }
