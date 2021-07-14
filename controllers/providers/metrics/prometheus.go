@@ -55,7 +55,7 @@ func NewPrometheusMetrics(config depresolver.Config) (metrics *PrometheusMetrics
 	return
 }
 
-func (m *PrometheusMetrics) UpdateIngressHostsPerStatusMetric(gslb *k8gbv1beta1.Gslb, serviceHealth map[string]string) error {
+func (m *PrometheusMetrics) UpdateIngressHostsPerStatusMetric(gslb *k8gbv1beta1.Gslb, serviceHealth map[string]string) {
 	var healthyHostsCount, unhealthyHostsCount, notFoundHostsCount int
 	for _, hs := range serviceHealth {
 		switch hs {
@@ -73,21 +73,18 @@ func (m *PrometheusMetrics) UpdateIngressHostsPerStatusMetric(gslb *k8gbv1beta1.
 		Set(float64(unhealthyHostsCount))
 	m.metrics.IngressHostsPerStatus.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "status": NotFoundStatus}).
 		Set(float64(notFoundHostsCount))
-	return nil
 }
 
-func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, healthyRecords map[string][]string) error {
+func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, healthyRecords map[string][]string) {
 	var hrsCount int
 	for _, hrs := range healthyRecords {
 		hrsCount += len(hrs)
 	}
 	m.metrics.HealthyRecords.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name}).Set(float64(hrsCount))
-	return nil
 }
 
-func (m *PrometheusMetrics) UpdateDelegatedZone() (err error) {
-
-	return
+func (m *PrometheusMetrics) UpdateDelegatedZone(gslb *k8gbv1beta1.Gslb, zone string, count int) {
+	m.metrics.DelegatedZoneUpdate.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "zone": zone}).Set(float64(count))
 }
 
 // Register prometheus metrics. Read register documentation, but shortly:

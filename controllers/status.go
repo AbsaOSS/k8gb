@@ -37,10 +37,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 		return err
 	}
 
-	err = r.Metrics.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
-	if err != nil {
-		return err
-	}
+	r.Metrics.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
 
 	gslb.Status.HealthyRecords, err = r.getHealthyRecords(gslb)
 	if err != nil {
@@ -49,10 +46,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 
 	gslb.Status.GeoTag = r.Config.ClusterGeoTag
 
-	err = r.Metrics.UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
-	if err != nil {
-		return err
-	}
+	r.Metrics.UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
 
 	err = r.Status().Update(context.TODO(), gslb)
 	return err
