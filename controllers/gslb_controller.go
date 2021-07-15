@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
+
 	str "github.com/AbsaOSS/gopkg/strings"
 	k8gbv1beta1 "github.com/AbsaOSS/k8gb/api/v1beta1"
 	"github.com/AbsaOSS/k8gb/controllers/depresolver"
@@ -63,6 +65,8 @@ const (
 )
 
 var log = logging.Logger()
+
+var m = metrics.Prometheus()
 
 // +kubebuilder:rbac:groups=k8gb.absa.oss,resources=gslbs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=k8gb.absa.oss,resources=gslbs/status,verbs=get;update;patch

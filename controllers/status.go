@@ -19,8 +19,9 @@ package controllers
 
 import (
 	"context"
-	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
 	"regexp"
+
+	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
 
 	k8gbv1beta1 "github.com/AbsaOSS/k8gb/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 		return err
 	}
 
-	metrics.Prometheus().UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
+	m.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
 
 	gslb.Status.HealthyRecords, err = r.getHealthyRecords(gslb)
 	if err != nil {

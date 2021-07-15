@@ -107,7 +107,6 @@ func main() {
 	}
 	defer metrics.Prometheus().Unregister()
 
-
 	log.Info().Msg("starting DNS provider")
 	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config)
 	if err != nil {
