@@ -47,8 +47,8 @@ type PrometheusMetrics struct {
 	metrics collectors
 }
 
-// NewPrometheusMetrics creates new prometheus metrics instance
-func NewPrometheusMetrics(config depresolver.Config) (metrics *PrometheusMetrics) {
+// newPrometheusMetrics creates new prometheus metrics instance
+func newPrometheusMetrics(config depresolver.Config) (metrics *PrometheusMetrics) {
 	metrics = new(PrometheusMetrics)
 	metrics.config = config
 	metrics.init()

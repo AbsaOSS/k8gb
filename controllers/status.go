@@ -30,8 +30,6 @@ import (
 	externaldns "sigs.k8s.io/external-dns/endpoint"
 )
 
-var m = metrics.Prometheus()
-
 func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 	var err error
 
@@ -40,7 +38,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 		return err
 	}
 
-	m.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
+	metrics.Prometheus().UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
 
 	gslb.Status.HealthyRecords, err = r.getHealthyRecords(gslb)
 	if err != nil {
@@ -49,7 +47,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 
 	gslb.Status.GeoTag = r.Config.ClusterGeoTag
 
-	m.UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
+	metrics.Prometheus().UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
 
 	err = r.Status().Update(context.TODO(), gslb)
 	return err
