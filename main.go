@@ -108,16 +108,8 @@ func main() {
 	defer metrics.Prometheus().Unregister()
 
 
-	reconciler.Metrics = metrics.NewPrometheusMetrics(*reconciler.Config)
-	err = reconciler.Metrics.Register()
-	if err != nil {
-		log.Err(err).Msg("register metrics error")
-		return
-	}
-	defer reconciler.Metrics.Unregister()
-
 	log.Info().Msg("starting DNS provider")
-	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config, reconciler.Metrics)
+	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config)
 	if err != nil {
 		log.Err(err).Msgf("unable to create factory (%s)", err)
 		return

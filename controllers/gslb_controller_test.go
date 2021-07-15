@@ -149,9 +149,9 @@ func TestHealthyServiceStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetric(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	err := settings.reconciler.Metrics.Register()
+	err := metrics.Prometheus().Register()
 	require.NoError(t, err)
-	defer settings.reconciler.Metrics.Unregister()
+	defer metrics.Prometheus().Unregister()
 	expectedHostsMetricCount := 3
 	// act
 	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
@@ -169,8 +169,8 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 		func() {
 			// arrange
 			settings := provideSettings(t, predefinedConfig)
-			defer settings.reconciler.Metrics.Unregister()
-			err := settings.reconciler.Metrics.Register()
+			defer metrics.Prometheus().Unregister()
+			err := metrics.Prometheus().Register()
 			require.NoError(t, err)
 			serviceName := "frontend-podinfo"
 			defer deleteHealthyService(t, &settings, serviceName)
@@ -194,8 +194,8 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetricReflectionForUnhealthyStatus(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	defer settings.reconciler.Metrics.Unregister()
-	err := settings.reconciler.Metrics.Register()
+	defer metrics.Prometheus().Unregister()
+	err := metrics.Prometheus().Register()
 	require.NoError(t, err)
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	expectedHostsMetricCount := 0.
@@ -228,8 +228,8 @@ func TestIngressHostsPerStatusMetricReflectionForUnhealthyStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetricReflectionForNotFoundStatus(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	defer settings.reconciler.Metrics.Unregister()
-	err := settings.reconciler.Metrics.Register()
+	defer metrics.Prometheus().Unregister()
+	err := metrics.Prometheus().Register()
 	require.NoError(t, err)
 	expectedHostsMetricCount := 2.0
 
@@ -261,8 +261,8 @@ func TestHealthyRecordMetric(t *testing.T) {
 	}
 	serviceName := "frontend-podinfo"
 	settings := provideSettings(t, predefinedConfig)
-	defer settings.reconciler.Metrics.Unregister()
-	err := settings.reconciler.Metrics.Register()
+	defer metrics.Prometheus().Unregister()
+	err := metrics.Prometheus().Register()
 	require.NoError(t, err)
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	require.NoError(t, err, "Failed to get expected gslb")
@@ -286,8 +286,8 @@ func TestHealthyRecordMetric(t *testing.T) {
 func TestMetricLinterCheck(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	defer settings.reconciler.Metrics.Unregister()
-	err := settings.reconciler.Metrics.Register()
+	defer metrics.Prometheus().Unregister()
+	err := metrics.Prometheus().Register()
 	require.NoError(t, err)
 	healthyRecordsMetric := settings.metrics.GetHealthyRecordsMetric()
 	ingressHostsPerStatusMetric := settings.metrics.GetIngressHostsPerStatusMetric()
@@ -1169,8 +1169,7 @@ func provideSettings(t *testing.T, expected depresolver.Config) (settings testSe
 	r.Config = &expected
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
-	m := metrics.NewPrometheusMetrics(expected)
-	r.Metrics = m
+	metrics.Init(&expected)
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      gslb.Name,
@@ -1210,10 +1209,10 @@ func provideSettings(t *testing.T, expected depresolver.Config) (settings testSe
 		ingress:    ingress,
 		finalCall:  false,
 		assistant:  a,
-		metrics:    m,
 	}
 	reconcileAndUpdateGslb(t, settings)
 	logging.Init(&expected)
+
 	return settings
 }
 

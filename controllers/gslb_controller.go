@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"strconv"
 
+	str "github.com/AbsaOSS/gopkg/strings"
 	k8gbv1beta1 "github.com/AbsaOSS/k8gb/api/v1beta1"
 	"github.com/AbsaOSS/k8gb/controllers/depresolver"
 	"github.com/AbsaOSS/k8gb/controllers/internal/utils"
 	"github.com/AbsaOSS/k8gb/controllers/logging"
 	"github.com/AbsaOSS/k8gb/controllers/providers/dns"
-	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
-
-	str "github.com/AbsaOSS/gopkg/strings"
 	corev1 "k8s.io/api/core/v1"
 	v1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -50,7 +48,6 @@ type GslbReconciler struct {
 	Scheme      *runtime.Scheme
 	Config      *depresolver.Config
 	DepResolver *depresolver.DependencyResolver
-	Metrics     metrics.Metrics
 	DNSProvider dns.Provider
 }
 

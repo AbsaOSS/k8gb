@@ -19,6 +19,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
 	"regexp"
 
 	k8gbv1beta1 "github.com/AbsaOSS/k8gb/api/v1beta1"
@@ -29,6 +30,8 @@ import (
 	externaldns "sigs.k8s.io/external-dns/endpoint"
 )
 
+var m = metrics.Prometheus()
+
 func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 	var err error
 
@@ -37,7 +40,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 		return err
 	}
 
-	r.Metrics.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
+	m.UpdateIngressHostsPerStatusMetric(gslb, gslb.Status.ServiceHealth)
 
 	gslb.Status.HealthyRecords, err = r.getHealthyRecords(gslb)
 	if err != nil {
@@ -46,7 +49,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 
 	gslb.Status.GeoTag = r.Config.ClusterGeoTag
 
-	r.Metrics.UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
+	m.UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
 
 	err = r.Status().Update(context.TODO(), gslb)
 	return err
