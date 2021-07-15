@@ -111,6 +111,7 @@ func (p *InfobloxProvider) CreateZoneDelegationForExternalDNS(gslb *k8gbv1beta1.
 				if err != nil {
 					return err
 				}
+				m.UpdateDelegatedZone(gslb, p.config.DNSZone, len(currentList))
 			}
 		}
 	} else {
@@ -120,6 +121,7 @@ func (p *InfobloxProvider) CreateZoneDelegationForExternalDNS(gslb *k8gbv1beta1.
 		if err != nil {
 			return err
 		}
+		m.CreateDelegatedZone(gslb, p.config.DNSZone, len(delegateTo))
 	}
 	if p.config.SplitBrainCheck {
 		return p.saveHeartbeatTXTRecord(objMgr, gslb)

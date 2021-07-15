@@ -22,6 +22,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
+
 	"github.com/AbsaOSS/k8gb/controllers/logging"
 
 	assistant2 "github.com/AbsaOSS/k8gb/controllers/providers/assistant"
@@ -47,6 +49,8 @@ type ExternalDNSProvider struct {
 }
 
 var log = logging.Logger()
+
+var m = metrics.Metrics()
 
 func NewExternalDNS(dnsType ExternalDNSType, config depresolver.Config, assistant assistant2.Assistant) *ExternalDNSProvider {
 	return &ExternalDNSProvider{

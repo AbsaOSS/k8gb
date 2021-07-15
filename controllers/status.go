@@ -48,7 +48,7 @@ func (r *GslbReconciler) updateGslbStatus(gslb *k8gbv1beta1.Gslb) error {
 
 	gslb.Status.GeoTag = r.Config.ClusterGeoTag
 
-	metrics.Prometheus().UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
+	metrics.Metrics().UpdateHealthyRecordsMetric(gslb, gslb.Status.HealthyRecords)
 
 	err = r.Status().Update(context.TODO(), gslb)
 	return err

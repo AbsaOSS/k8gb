@@ -39,6 +39,8 @@ type collectors struct {
 	HealthyRecords        *prometheus.GaugeVec
 	IngressHostsPerStatus *prometheus.GaugeVec
 	DelegatedZoneUpdate   *prometheus.GaugeVec
+	DelegatedZoneCreate   *prometheus.GaugeVec
+	ReconciliationCounter prometheus.Counter
 }
 
 type PrometheusMetrics struct {
@@ -85,6 +87,14 @@ func (m *PrometheusMetrics) UpdateHealthyRecordsMetric(gslb *k8gbv1beta1.Gslb, h
 
 func (m *PrometheusMetrics) UpdateDelegatedZone(gslb *k8gbv1beta1.Gslb, zone string, count int) {
 	m.metrics.DelegatedZoneUpdate.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "zone": zone}).Set(float64(count))
+}
+
+func (m *PrometheusMetrics) CreateDelegatedZone(gslb *k8gbv1beta1.Gslb, zone string, count int) {
+	m.metrics.DelegatedZoneCreate.With(prometheus.Labels{"namespace": gslb.Namespace, "name": gslb.Name, "zone": zone}).Set(float64(count))
+}
+
+func (m *PrometheusMetrics) ReconciliationIncrement() {
+	m.metrics.ReconciliationCounter.Inc()
 }
 
 // Register prometheus metrics. Read register documentation, but shortly:
@@ -151,6 +161,25 @@ func (m *PrometheusMetrics) init() {
 		},
 		[]string{"namespace", "name", "zone"},
 	)
+
+	m.metrics.DelegatedZoneCreate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: m.config.K8gbNamespace,
+			Subsystem: gslbSubsystem,
+			Name:      "delegated_zone_create",
+			Help:      "Number of delegated zone creates.",
+		},
+		[]string{"namespace", "name", "zone"},
+	)
+
+	m.metrics.ReconciliationCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: m.config.K8gbNamespace,
+			Subsystem: gslbSubsystem,
+			Name:      "reconciliation_counter",
+			Help:      "Number of reconciliation loops.",
+		})
+
 }
 
 // registry is helper function reading fields from m.metrics and provides metrics list

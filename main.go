@@ -100,12 +100,12 @@ func main() {
 
 	log.Info().Msg("starting metrics")
 	metrics.Init(config)
-	err = metrics.Prometheus().Register()
+	err = metrics.Metrics().Register()
 	if err != nil {
 		log.Err(err).Msg("register metrics error")
 		return
 	}
-	defer metrics.Prometheus().Unregister()
+	defer metrics.Metrics().Unregister()
 
 	log.Info().Msg("starting DNS provider")
 	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config)

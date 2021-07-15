@@ -66,7 +66,7 @@ const (
 
 var log = logging.Logger()
 
-var m = metrics.Prometheus()
+var m = metrics.Metrics()
 
 // +kubebuilder:rbac:groups=k8gb.absa.oss,resources=gslbs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=k8gb.absa.oss,resources=gslbs/status,verbs=get;update;patch
@@ -170,6 +170,7 @@ func (r *GslbReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Everything went fine, requeue after some time to catch up
 	// with external Gslb status
 	// TODO: potentially enhance with smarter reaction to external Event
+	m.ReconciliationIncrement()
 	return result.Requeue()
 }
 

@@ -28,8 +28,8 @@ var (
 	metrics PrometheusMetrics
 )
 
-// Prometheus public static metrics, providing instance of initialised metrics
-func Prometheus() *PrometheusMetrics {
+// Metrics public static metrics, providing instance of initialised metrics
+func Metrics() *PrometheusMetrics {
 	return &metrics
 }
 

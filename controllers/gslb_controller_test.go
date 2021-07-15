@@ -148,12 +148,12 @@ func TestHealthyServiceStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetric(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	err := metrics.Prometheus().Register()
+	err := metrics.Metrics().Register()
 	require.NoError(t, err)
-	defer metrics.Prometheus().Unregister()
+	defer metrics.Metrics().Unregister()
 	expectedHostsMetricCount := 3
 	// act
-	ingressHostsPerStatusMetric := metrics.Prometheus().GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := metrics.Metrics().GetIngressHostsPerStatusMetric()
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	actualHostsMetricCount := testutil.CollectAndCount(ingressHostsPerStatusMetric)
 	// assert
@@ -168,8 +168,8 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 		func() {
 			// arrange
 			settings := provideSettings(t, predefinedConfig)
-			defer metrics.Prometheus().Unregister()
-			err := metrics.Prometheus().Register()
+			defer metrics.Metrics().Unregister()
+			err := metrics.Metrics().Register()
 			require.NoError(t, err)
 			serviceName := "frontend-podinfo"
 			defer deleteHealthyService(t, &settings, serviceName)
@@ -178,7 +178,7 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 			reconcileAndUpdateGslb(t, settings)
 			// act
 			err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
-			ingressHostsPerStatusMetric := metrics.Prometheus().GetIngressHostsPerStatusMetric()
+			ingressHostsPerStatusMetric := metrics.Metrics().GetIngressHostsPerStatusMetric()
 			healthyHosts := ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": settings.gslb.Namespace,
 				"name": settings.gslb.Name, "status": metrics.HealthyStatus})
 			actualHostsMetric := testutil.ToFloat64(healthyHosts)
@@ -193,13 +193,13 @@ func TestIngressHostsPerStatusMetricReflectionForHealthyStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetricReflectionForUnhealthyStatus(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	defer metrics.Prometheus().Unregister()
-	err := metrics.Prometheus().Register()
+	defer metrics.Metrics().Unregister()
+	err := metrics.Metrics().Register()
 	require.NoError(t, err)
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	expectedHostsMetricCount := 0.
 	// act
-	ingressHostsPerStatusMetric := metrics.Prometheus().GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := metrics.Metrics().GetIngressHostsPerStatusMetric()
 	unhealthyHosts := ingressHostsPerStatusMetric.With(prometheus.Labels{"namespace": settings.gslb.Namespace,
 		"name": settings.gslb.Name, "status": metrics.UnhealthyStatus})
 	actualHostsMetricCount := testutil.ToFloat64(unhealthyHosts)
@@ -227,8 +227,8 @@ func TestIngressHostsPerStatusMetricReflectionForUnhealthyStatus(t *testing.T) {
 func TestIngressHostsPerStatusMetricReflectionForNotFoundStatus(t *testing.T) {
 	// arrange
 	settings := provideSettings(t, predefinedConfig)
-	defer metrics.Prometheus().Unregister()
-	err := metrics.Prometheus().Register()
+	defer metrics.Metrics().Unregister()
+	err := metrics.Metrics().Register()
 	require.NoError(t, err)
 	expectedHostsMetricCount := 2.0
 
@@ -240,7 +240,7 @@ func TestIngressHostsPerStatusMetricReflectionForNotFoundStatus(t *testing.T) {
 	// act
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	require.NoError(t, err, "Failed to get expected gslb")
-	ingressHostsPerStatusMetric := metrics.Prometheus().GetIngressHostsPerStatusMetric()
+	ingressHostsPerStatusMetric := metrics.Metrics().GetIngressHostsPerStatusMetric()
 	unknownHosts, err := ingressHostsPerStatusMetric.GetMetricWith(
 		prometheus.Labels{"namespace": settings.gslb.Namespace, "name": settings.gslb.Name, "status": metrics.NotFoundStatus})
 	require.NoError(t, err, "Failed to get ingress metrics")
@@ -260,8 +260,8 @@ func TestHealthyRecordMetric(t *testing.T) {
 	}
 	serviceName := "frontend-podinfo"
 	settings := provideSettings(t, predefinedConfig)
-	defer metrics.Prometheus().Unregister()
-	err := metrics.Prometheus().Register()
+	defer metrics.Metrics().Unregister()
+	err := metrics.Metrics().Register()
 	require.NoError(t, err)
 	err = settings.client.Get(context.TODO(), settings.request.NamespacedName, settings.gslb)
 	require.NoError(t, err, "Failed to get expected gslb")
@@ -274,7 +274,7 @@ func TestHealthyRecordMetric(t *testing.T) {
 	require.NoError(t, err, "Failed to update gslb Ingress Address")
 	reconcileAndUpdateGslb(t, settings)
 	// act
-	healthyRecordsMetric := metrics.Prometheus().GetHealthyRecordsMetric()
+	healthyRecordsMetric := metrics.Metrics().GetHealthyRecordsMetric()
 	actualHealthyRecordsMetricCount := testutil.ToFloat64(healthyRecordsMetric)
 	reconcileAndUpdateGslb(t, settings)
 	// assert
@@ -285,11 +285,11 @@ func TestHealthyRecordMetric(t *testing.T) {
 func TestMetricLinterCheck(t *testing.T) {
 	// arrange
 	metrics.Init(&predefinedConfig)
-	defer metrics.Prometheus().Unregister()
-	err := metrics.Prometheus().Register()
+	defer metrics.Metrics().Unregister()
+	err := metrics.Metrics().Register()
 	require.NoError(t, err)
-	healthyRecordsMetric := metrics.Prometheus().GetHealthyRecordsMetric()
-	ingressHostsPerStatusMetric := metrics.Prometheus().GetIngressHostsPerStatusMetric()
+	healthyRecordsMetric := metrics.Metrics().GetHealthyRecordsMetric()
+	ingressHostsPerStatusMetric := metrics.Metrics().GetIngressHostsPerStatusMetric()
 	for name, scenario := range map[string]prometheus.Collector{
 		"healthy_records":          healthyRecordsMetric,
 		"ingress_hosts_per_status": ingressHostsPerStatusMetric,
