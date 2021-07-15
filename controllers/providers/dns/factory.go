@@ -19,6 +19,7 @@ package dns
 
 import (
 	"fmt"
+	"github.com/AbsaOSS/k8gb/controllers/providers/metrics"
 
 	"github.com/AbsaOSS/k8gb/controllers/depresolver"
 	"github.com/AbsaOSS/k8gb/controllers/providers/assistant"
@@ -29,15 +30,21 @@ import (
 type ProviderFactory struct {
 	config depresolver.Config
 	client client.Client
+	metrics metrics.Metrics
 }
 
-func NewDNSProviderFactory(client client.Client, config depresolver.Config) (f *ProviderFactory, err error) {
+func NewDNSProviderFactory(client client.Client, config depresolver.Config, metrics metrics.Metrics) (f *ProviderFactory, err error) {
 	if client == nil {
 		err = fmt.Errorf("nil client")
+	}
+	// TODO: test this
+	if metrics == nil {
+		err = fmt.Errorf("nil metrics")
 	}
 	f = &ProviderFactory{
 		config: config,
 		client: client,
+		metrics: metrics,
 	}
 	return
 }

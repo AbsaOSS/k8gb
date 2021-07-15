@@ -149,7 +149,7 @@ func (m *PrometheusMetrics) init() {
 			Name:      "delegated_zone_update",
 			Help:      "Number of delegated zone updates.",
 		},
-		[]string{"namespace", "name"},
+		[]string{"namespace", "name", "zone"},
 	)
 }
 

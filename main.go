@@ -98,15 +98,16 @@ func main() {
 		Scheme:      mgr.GetScheme(),
 	}
 
-	log.Info().Msg("starting DNS provider")
-	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config)
+	log.Info().Msg("starting metrics")
+	metrics.Init(config)
+	err = metrics.Prometheus().Register()
 	if err != nil {
-		log.Err(err).Msgf("unable to create factory (%s)", err)
+		log.Err(err).Msg("register metrics error")
 		return
 	}
-	reconciler.DNSProvider = f.Provider()
-	log.Info().Msgf("provider: %s", reconciler.DNSProvider)
-	log.Info().Msg("starting metrics")
+	defer metrics.Prometheus().Unregister()
+
+
 	reconciler.Metrics = metrics.NewPrometheusMetrics(*reconciler.Config)
 	err = reconciler.Metrics.Register()
 	if err != nil {
@@ -114,6 +115,16 @@ func main() {
 		return
 	}
 	defer reconciler.Metrics.Unregister()
+
+	log.Info().Msg("starting DNS provider")
+	f, err = dns.NewDNSProviderFactory(reconciler.Client, *reconciler.Config, reconciler.Metrics)
+	if err != nil {
+		log.Err(err).Msgf("unable to create factory (%s)", err)
+		return
+	}
+	reconciler.DNSProvider = f.Provider()
+	log.Info().Msgf("provider: %s", reconciler.DNSProvider)
+
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Err(err).Msg("unable to create controller Gslb")
 		return
