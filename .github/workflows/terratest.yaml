@@ -45,7 +45,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f
+      - uses: actions/setup-go@21459d0b7b1d63741429b748885bf5a4974593b4
         with:
           go-version: 1.19.1
 
