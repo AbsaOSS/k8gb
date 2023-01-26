@@ -47,7 +47,7 @@ k8gb:
 
 externaldns:
   # -- external-dns image repo:tag
-  image: k8s.gcr.io/external-dns/external-dns:v0.9.0
+  image: k8s.gcr.io/external-dns/external-dns:v0.13.2
   # -- external-dns sync interval
   interval: "20s"
   securityContext:
@@ -67,7 +67,7 @@ coredns:
     # -- CoreDNS CRD plugin image
     repository: absaoss/k8s_crd
     # -- image tag
-    tag: v0.0.8
+    tag: v0.0.9
   # -- Creates serviceAccount for coredns
   serviceAccount:
     create: true
@@ -139,11 +139,11 @@ tracing:
     # -- OpenTelemetry collector into which the k8gb operator sends the spans. It can be further configured to send its data
     # to somewhere else using exporters (Jaeger for instance)
     repository: otel/opentelemetry-collector
-    tag: 0.57.2
+    tag: 0.70.0
     pullPolicy: Always
 
   jaegerImage:
     # -- if `tracing.deployJaeger==true` this image will be used in the deployment for Jaeger
     repository: jaegertracing/all-in-one
-    tag: 1.37.0
+    tag: 1.41.0
     pullPolicy: Always
